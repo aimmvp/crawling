@@ -11,12 +11,14 @@ from selenium.webdriver.common.by import By
 # 명시적 대기를 위해
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
+from DbMgr import DBHelper as Db
 from tour import TourInfo
 
 # 사전에 필요한 정보 로드
+db = Db()
 main_url = 'http://tour.interpark.com/'
 keyword = '크로아티아'
+
 # 상품정보를 담는 리스트(TourInfo 리스트)
 tour_list = []
 
@@ -69,7 +71,7 @@ for page in range(1, 2):
         # 자바스크립트 구동하기
         driver.execute_script("searchModule.SetCategoryList(%s, '')" % page)
         time.sleep(2)
-        print("%s 페이지 이동" % page)
+        # print("%s 페이지 이동" % page)
         ##############################
         # 여러사이트에서 정보를 수집할 경우 공통 정보 정의 단계 필요
         # 상품명, 코멘트, 기간1, 기간2, 가격, 평점, 썸네일, 링크(상품상세정보)
@@ -100,11 +102,11 @@ for page in range(1, 2):
     except Exception as e1:
         print('Error ::::::', e1)
 
-print( tour_list, len(tour_list))
+# print( tour_list, len(tour_list))
 # 수집한 정보 개수를 돌면서 => 페이지 방문 => 콘텐츠 획득(상품 상세 정보) => 디비
 for tour in tour_list:
     # TourInfo
-    print( type(tour))
+    # print( type(tour))
     # 링크 데이터에서 실데이터 획득
     # 분해
     arr = tour.link.split(',')
@@ -119,8 +121,20 @@ for tour in tour_list:
         # 현재 페이지를 beautiful soup의 DOM으로 구성
         soup = bs(driver.page_source, 'html.parser')
         # 현재 상세 정보 페이지에서 스케줄 정보 획득
-        data = soup.select('.schedule-all')
-        print('data::::', type(data))
+        data = soup.select('.tip-cover')
+        # print('data::::', type(data), 'len:::', len(data))
+        # 디비 입력 => pip install pymysql
+        content_final = data[0].contents
+        # for c in data[0].contents:
+        #     content_final = str(c)
+
+        db.db_insertCrawlingData(
+            tour.title,
+            tour.price,
+            tour.area,
+            data[0].contents,
+            keyword
+        )
 
 # 종료
 driver.close()
